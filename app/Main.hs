@@ -1,6 +1,9 @@
-module Main where
+{-# LANGUAGE NoImplicitPrelude #-}
 
-import Lib
+module Main (main) where
+
+import           Lib     (someFunc)
+import           Prelude (IO)
 
 main :: IO ()
 main = someFunc
