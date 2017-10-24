@@ -1,6 +1,9 @@
 {-# LANGUAGE NoImplicitPrelude #-}
 
-import           Prelude (IO, putStrLn)
+import           Prelude    (IO, Integer, return, ($), (+))
+import           Test.HUnit (runTestTT, (~:), (~?=))
 
 main :: IO ()
-main = putStrLn "Test suite not yet implemented"
+main = do
+  _ <- runTestTT $ "Test1" ~: (1 :: Integer) + 1 ~?= 2
+  return ()
