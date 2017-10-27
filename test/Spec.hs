@@ -1,9 +1,13 @@
 {-# LANGUAGE NoImplicitPrelude #-}
 
 import           Prelude    (IO, Integer, return, ($), (+))
-import           Test.HUnit (runTestTT, (~:), (~?=))
+import           Test.HUnit (Test (TestList), runTestTT, (~:), (~?=))
 
 main :: IO ()
 main = do
-  _ <- runTestTT $ "Test1" ~: (1 :: Integer) + 1 ~?= 2
+  _ <- runTestTT $ TestList
+    [
+      "Test1" ~: (1 :: Integer) + 1 ~?= 2,
+      "Test1" ~: (1 :: Integer) + 1 ~?= 2
+    ]
   return ()
