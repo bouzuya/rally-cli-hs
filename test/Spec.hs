@@ -1,5 +1,3 @@
-{-# LANGUAGE NoImplicitPrelude #-}
-
 import           Lib        (getCommand)
 import           Prelude    (IO, Integer, return, ($), (+))
 import           Test.HUnit (Test (TestList), runTestTT, (~:), (~?=))

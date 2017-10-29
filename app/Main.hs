@@ -1,5 +1,3 @@
-{-# LANGUAGE NoImplicitPrelude #-}
-
 module Main (main) where
 
 import           Lib                (getCommand, someFunc)
