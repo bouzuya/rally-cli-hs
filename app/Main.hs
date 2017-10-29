@@ -2,8 +2,13 @@
 
 module Main (main) where
 
-import           Lib     (someFunc)
-import           Prelude (IO)
+import           Data.List          (intercalate)
+import           Lib                (someFunc)
+import           Prelude            (IO, putStrLn, ($))
+import           System.Environment (getArgs)
 
 main :: IO ()
-main = someFunc
+main = do
+  args <- getArgs
+  putStrLn $ intercalate "," args
+  someFunc
