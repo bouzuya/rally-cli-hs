@@ -11,6 +11,7 @@ import           Network.HTTP.Simple (Request, getResponseBody, httpLBS,
 import           Prelude             (IO, Show, String, print, pure, putStrLn,
                                       ($), (<$>), (<*>))
 import           System.Environment  (lookupEnv)
+import           System.Exit         (exitFailure)
 
 type Email = String
 type Password = String
@@ -32,6 +33,10 @@ instance ToJSON Credential where
 instance FromJSON Token where
   parseJSON = withObject "Token" $ \v -> Token <$> v .: "token"
 
+createToken :: Credential -> Request -> IO (Maybe Token)
+createToken credential baseRequest =
+  sendRequest $ createTokenRequest credential baseRequest :: IO (Maybe Token)
+
 createTokenRequest :: Credential -> Request -> Request
 createTokenRequest credential baseRequest =
   setRequestMethod "POST"
@@ -50,10 +55,9 @@ export' = do
   baseRequest <- parseRequest "https://api.rallyapp.jp"
   credential <- getCredential
   print credential
-  case credential of
-    Just x -> do
-      let request = createTokenRequest x baseRequest
-      token <- sendRequest request :: IO (Maybe Token)
-      print token
-    Nothing ->
+  token <- case credential of
+    Just x -> createToken x baseRequest
+    Nothing -> do
       putStrLn "check RALLY_EMAIL and RALLY_PASSWORD"
+      exitFailure
+  print token
