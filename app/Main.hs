@@ -1,11 +1,12 @@
 module Main (main) where
 
+import           Command.Export     (export')
 import           Lib                (getCommand, someFunc)
-import           Prelude            (IO, putStrLn, (<$>))
+import           Prelude            (IO, putStrLn, (<$>), (==))
 import           System.Environment (getArgs)
 
 main :: IO ()
 main = do
   command <- getCommand <$> getArgs
-  putStrLn command
+  if command == "export" then export' else putStrLn command
   someFunc
