@@ -1,5 +1,7 @@
+{-# LANGUAGE OverloadedStrings #-}
 module Command.Export (export') where
 
+import           Data.Aeson         (ToJSON (toJSON), encode, object, (.=))
 import           Data.Maybe         (Maybe)
 import           Prelude            (IO, Show, String, print, pure, return, ($),
                                      (<$>), (<*>))
@@ -11,12 +13,18 @@ data Credential = Credential Email Password deriving (Show)
 
 getCredential :: IO (Maybe Credential)
 getCredential = do
-  email <- lookupEnv "RALLY_EMAIL"
+  email    <- lookupEnv "RALLY_EMAIL"
   password <- lookupEnv "RALLY_PASSWORD"
   pure $ Credential <$> email <*> password
+
+instance ToJSON Credential where
+  toJSON (Credential email password) =
+     object [ "email" .= email
+            , "password" .= password
+            ]
 
 export' :: IO ()
 export' = do
   credential <- getCredential
-  print credential
+  print $ encode <$> credential
   return ()
