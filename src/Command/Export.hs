@@ -1,7 +1,8 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Command.Export (export') where
 
-import           Data.Aeson          (ToJSON (toJSON), object, (.=))
+import           Data.Aeson          (FromJSON (parseJSON), ToJSON (toJSON),
+                                      decode, object, withObject, (.:), (.=))
 import           Data.Maybe          (Maybe (Just, Nothing))
 import           Network.HTTP.Simple (Request, getResponseBody, httpLBS,
                                       parseRequest, setRequestBodyJSON,
@@ -14,6 +15,7 @@ import           System.Environment  (lookupEnv)
 type Email = String
 type Password = String
 data Credential = Credential Email Password deriving (Show)
+data Token = Token String deriving (Show)
 
 getCredential :: IO (Maybe Credential)
 getCredential = do
@@ -27,6 +29,9 @@ instance ToJSON Credential where
            , "password" .= password
            ]
 
+instance FromJSON Token where
+  parseJSON = withObject "Token" $ \v -> Token <$> v .: "token"
+
 createTokenRequest :: Credential -> Request -> Request
 createTokenRequest credential baseRequest =
   setRequestMethod "POST"
@@ -34,6 +39,11 @@ createTokenRequest credential baseRequest =
     $ setRequestPath "/tokens"
     $ setRequestQueryString [("viewtype", Just "admin")]
     $ baseRequest
+
+sendRequest :: (FromJSON a) => Request -> IO (Maybe a)
+sendRequest request = do
+  json <- httpLBS request
+  pure $ decode $ getResponseBody json
 
 export' :: IO ()
 export' = do
@@ -43,7 +53,7 @@ export' = do
   case credential of
     Just x -> do
       let request = createTokenRequest x baseRequest
-      json <- httpLBS request
-      print $ getResponseBody json
+      token <- sendRequest request :: IO (Maybe Token)
+      print token
     Nothing ->
       putStrLn "check RALLY_EMAIL and RALLY_PASSWORD"
