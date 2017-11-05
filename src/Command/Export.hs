@@ -113,16 +113,12 @@ saveStampRally directory stampRally = do
   let content  = TL.unpack $ encodeToLazyText stampRally
   writeFile filePath content
 
-exportStampRally :: FilePath -> StampRallyId -> Maybe Token -> Request -> IO ()
-exportStampRally stampRallyDirectory stampRallyId token baseRequest = do
-  stampRally <- case token of
-    Just x  -> getStampRally $ getStampRallyRequest stampRallyId x baseRequest
-    Nothing -> do
-      putStrLn "Token"
-      exitFailure
+exportStampRally :: FilePath -> StampRallyId -> Token -> Request -> IO ()
+exportStampRally directory stampRallyId token request = do
+  stampRally <- getStampRally $ getStampRallyRequest stampRallyId token request
   print stampRally
   case stampRally of
-    Just x  -> saveStampRally stampRallyDirectory x
+    Just x  -> saveStampRally directory x
     Nothing -> do
       putStrLn "StampRally"
       exitFailure
@@ -141,8 +137,13 @@ export' = do
     Nothing -> do
       putStrLn "check RALLY_EMAIL and RALLY_PASSWORD"
       exitFailure
+  token' <- case token of
+    Just x -> pure x
+    Nothing -> do
+      putStrLn "Token"
+      exitFailure
   print token
-  exportStampRally stampRallyDirectory stampRallyId token baseRequest
+  exportStampRally stampRallyDirectory stampRallyId token' baseRequest
   spotList <- case token of
     Just x  -> getSpotList $ getSpotListRequest stampRallyId x baseRequest
     Nothing -> do
