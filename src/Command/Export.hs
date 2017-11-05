@@ -1,11 +1,12 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Command.Export (export') where
-
 import           Data.Aeson           (FromJSON (parseJSON), ToJSON (toJSON),
                                        decode, object, withObject, (.:), (.=))
+import           Data.Aeson.Text      (encodeToLazyText)
 import qualified Data.ByteString.UTF8 as B
 import           Data.Maybe           (Maybe (Just, Nothing))
 import           Data.Monoid          ((<>))
+import           Data.Text.Lazy       as TL
 import           Network.HTTP.Simple  (Request, getResponseBody, httpLBS,
                                        parseRequest, setRequestBodyJSON,
                                        setRequestHeaders, setRequestMethod,
@@ -17,6 +18,7 @@ import           System.Directory     (createDirectory, doesDirectoryExist,
 import           System.Environment   (lookupEnv)
 import           System.Exit          (exitFailure)
 import           System.FilePath      ((</>))
+import           System.IO            (writeFile)
 
 type Email = String
 type Password = String
@@ -38,6 +40,10 @@ instance ToJSON Credential where
   toJSON (Credential email password) =
     object [ "email" .= email
            , "password" .= password
+           ]
+instance ToJSON StampRally where
+  toJSON (StampRally id) =
+    object [ "id" .= id
            ]
 
 instance FromJSON Spot where
@@ -73,9 +79,9 @@ getSpotListRequest stampRallyId (Token token) baseRequest =
     $ setRequestHeaders [("Authorization", authHeader)]
     $ setRequestQueryString [("view_type", Just "admin")]
     $ baseRequest
-  where
-    path = B.fromString $ "/stamp_rallies/" <> stampRallyId <> "/spots"
-    authHeader = B.fromString $ "Token token=\"" <> token <> "\""
+ where
+  path       = B.fromString $ "/stamp_rallies/" <> stampRallyId <> "/spots"
+  authHeader = B.fromString $ "Token token=\"" <> token <> "\""
 
 getStampRally :: Request -> IO (Maybe StampRally)
 getStampRally = sendRequest
@@ -87,9 +93,9 @@ getStampRallyRequest stampRallyId (Token token) baseRequest =
     $ setRequestHeaders [("Authorization", authHeader)]
     $ setRequestQueryString [("view_type", Just "admin")]
     $ baseRequest
-  where
-    path = B.fromString $ "/stamp_rallies/" <> stampRallyId
-    authHeader = B.fromString $ "Token token=\"" <> token <> "\""
+ where
+  path       = B.fromString $ "/stamp_rallies/" <> stampRallyId
+  authHeader = B.fromString $ "Token token=\"" <> token <> "\""
 
 sendRequest :: (FromJSON a) => Request -> IO (Maybe a)
 sendRequest request = do
@@ -101,31 +107,44 @@ ensureDirectory filePath = do
   exists <- doesDirectoryExist filePath
   if exists then pure () else createDirectory filePath
 
+saveStampRally :: FilePath -> StampRally -> IO ()
+saveStampRally directory stampRally = do
+  let filePath = directory </> "stamp-rally.json"
+  let content  = TL.unpack $ encodeToLazyText stampRally
+  writeFile filePath content
+
+exportStampRally :: FilePath -> StampRallyId -> Maybe Token -> Request -> IO ()
+exportStampRally stampRallyDirectory stampRallyId token baseRequest = do
+  stampRally <- case token of
+    Just x  -> getStampRally $ getStampRallyRequest stampRallyId x baseRequest
+    Nothing -> do
+      putStrLn "Token"
+      exitFailure
+  print stampRally
+  case stampRally of
+    Just x  -> saveStampRally stampRallyDirectory x
+    Nothing -> do
+      putStrLn "StampRally"
+      exitFailure
+
 export' :: IO ()
 export' = do
   let stampRallyId = "xxxxxxxxxxxxxxxx"
   currentDirectory <- getCurrentDirectory
-  putStrLn currentDirectory
   let stampRallyDirectory = currentDirectory </> stampRallyId
-  putStrLn stampRallyDirectory
   ensureDirectory stampRallyDirectory
   baseRequest <- parseRequest "https://api.rallyapp.jp"
-  credential <- getCredential
+  credential  <- getCredential
   print credential
   token <- case credential of
-    Just x -> createToken $ createTokenRequest x baseRequest
+    Just x  -> createToken $ createTokenRequest x baseRequest
     Nothing -> do
       putStrLn "check RALLY_EMAIL and RALLY_PASSWORD"
       exitFailure
   print token
-  stampRally <- case token of
-    Just x -> getStampRally $ getStampRallyRequest stampRallyId x baseRequest
-    Nothing -> do
-      putStrLn "StampRally"
-      exitFailure
-  print stampRally
+  exportStampRally stampRallyDirectory stampRallyId token baseRequest
   spotList <- case token of
-    Just x -> getSpotList $ getSpotListRequest stampRallyId x baseRequest
+    Just x  -> getSpotList $ getSpotListRequest stampRallyId x baseRequest
     Nothing -> do
       putStrLn "SpotList"
       exitFailure
