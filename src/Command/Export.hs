@@ -2,8 +2,7 @@
 module Command.Export (export') where
 
 import           Data.Aeson           (FromJSON (parseJSON), ToJSON (toJSON),
-                                       decode, object, withArray, withObject,
-                                       (.:), (.=))
+                                       decode, object, withObject, (.:), (.=))
 import qualified Data.ByteString.UTF8 as B
 import           Data.Maybe           (Maybe (Just, Nothing))
 import           Data.Monoid          ((<>))
@@ -11,10 +10,13 @@ import           Network.HTTP.Simple  (Request, getResponseBody, httpLBS,
                                        parseRequest, setRequestBodyJSON,
                                        setRequestHeaders, setRequestMethod,
                                        setRequestPath, setRequestQueryString)
-import           Prelude              (IO, Int, Show, String, print, pure,
-                                       putStrLn, ($), (<$>), (<*>))
+import           Prelude              (FilePath, IO, Int, Show, String, print,
+                                       pure, putStrLn, ($), (<$>), (<*>))
+import           System.Directory     (createDirectory, doesDirectoryExist,
+                                       getCurrentDirectory)
 import           System.Environment   (lookupEnv)
 import           System.Exit          (exitFailure)
+import           System.FilePath      ((</>))
 
 type Email = String
 type Password = String
@@ -94,9 +96,19 @@ sendRequest request = do
   json <- httpLBS request
   pure $ decode $ getResponseBody json
 
+ensureDirectory :: FilePath -> IO ()
+ensureDirectory filePath = do
+  exists <- doesDirectoryExist filePath
+  if exists then pure () else createDirectory filePath
+
 export' :: IO ()
 export' = do
   let stampRallyId = "xxxxxxxxxxxxxxxx"
+  currentDirectory <- getCurrentDirectory
+  putStrLn currentDirectory
+  let stampRallyDirectory = currentDirectory </> stampRallyId
+  putStrLn stampRallyDirectory
+  ensureDirectory stampRallyDirectory
   baseRequest <- parseRequest "https://api.rallyapp.jp"
   credential <- getCredential
   print credential
