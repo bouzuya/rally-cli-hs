@@ -4,7 +4,7 @@ import           Data.Aeson           (FromJSON (parseJSON), ToJSON (toJSON),
                                        decode, object, withObject, (.:), (.=))
 import           Data.Aeson.Text      (encodeToLazyText)
 import qualified Data.ByteString.UTF8 as B
-import           Data.Maybe           (Maybe (Just, Nothing), maybe)
+import           Data.Maybe           (Maybe (Just), maybe)
 import           Data.Monoid          ((<>))
 import           Data.Text.Lazy       as TL
 import           Network.HTTP.Simple  (Request, getResponseBody, httpLBS,
@@ -12,11 +12,11 @@ import           Network.HTTP.Simple  (Request, getResponseBody, httpLBS,
                                        setRequestHeaders, setRequestMethod,
                                        setRequestPath, setRequestQueryString)
 import           Prelude              (FilePath, IO, Int, Show, String, print,
-                                       pure, putStrLn, ($), (<$>), (<*>))
+                                       pure, ($), (<$>), (<*>))
 import           System.Directory     (createDirectory, doesDirectoryExist,
                                        getCurrentDirectory)
 import           System.Environment   (lookupEnv)
-import           System.Exit          (die, exitFailure)
+import           System.Exit          (die)
 import           System.FilePath      ((</>))
 import           System.IO            (writeFile)
 
@@ -126,22 +126,10 @@ export' = do
   ensureDirectory stampRallyDirectory
   baseRequest <- parseRequest "https://api.rallyapp.jp"
   credential  <- getCredential
-  print credential
-  token <- case credential of
-    Just x  -> createToken $ createTokenRequest x baseRequest
-    Nothing -> do
-      putStrLn "check RALLY_EMAIL and RALLY_PASSWORD"
-      exitFailure
-  token' <- case token of
-    Just x -> pure x
-    Nothing -> do
-      putStrLn "Token"
-      exitFailure
-  print token
+  credential' <- maybe (die "RALLY_EMAIL & RALLY_PASSWORD") pure credential
+  token <- createToken $ createTokenRequest credential' baseRequest
+  token' <- maybe (die "Token") pure token
   exportStampRally stampRallyDirectory stampRallyId token' baseRequest
-  spotList <- case token of
-    Just x  -> getSpotList $ getSpotListRequest stampRallyId x baseRequest
-    Nothing -> do
-      putStrLn "SpotList"
-      exitFailure
-  print spotList
+  spotList <- getSpotList $ getSpotListRequest stampRallyId token' baseRequest
+  spotList' <- maybe (die "SpotList") pure spotList
+  print spotList'
