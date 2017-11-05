@@ -2,7 +2,8 @@
 module Command.Export (export') where
 
 import           Data.Aeson           (FromJSON (parseJSON), ToJSON (toJSON),
-                                       decode, object, withObject, (.:), (.=))
+                                       decode, object, withArray, withObject,
+                                       (.:), (.=))
 import qualified Data.ByteString.UTF8 as B
 import           Data.Maybe           (Maybe (Just, Nothing))
 import           Data.Monoid          ((<>))
@@ -10,8 +11,8 @@ import           Network.HTTP.Simple  (Request, getResponseBody, httpLBS,
                                        parseRequest, setRequestBodyJSON,
                                        setRequestHeaders, setRequestMethod,
                                        setRequestPath, setRequestQueryString)
-import           Prelude              (IO, Show, String, print, pure, putStrLn,
-                                       ($), (<$>), (<*>))
+import           Prelude              (IO, Int, Show, String, print, pure,
+                                       putStrLn, ($), (<$>), (<*>))
 import           System.Environment   (lookupEnv)
 import           System.Exit          (exitFailure)
 
@@ -21,6 +22,9 @@ data Credential = Credential Email Password deriving (Show)
 type StampRallyId = String
 data StampRally = StampRally StampRallyId deriving (Show)
 data Token = Token String deriving (Show)
+type SpotId = Int
+data Spot = Spot SpotId deriving (Show)
+data SpotList = SpotList [Spot] deriving (Show)
 
 getCredential :: IO (Maybe Credential)
 getCredential = do
@@ -33,6 +37,12 @@ instance ToJSON Credential where
     object [ "email" .= email
            , "password" .= password
            ]
+
+instance FromJSON Spot where
+  parseJSON = withObject "Spot" $ \v -> Spot <$> v .: "id"
+
+instance FromJSON SpotList where
+  parseJSON = withObject "SpotList" $ \v -> SpotList <$> v .: "spots"
 
 instance FromJSON StampRally where
   parseJSON = withObject "StampRally" $ \v -> StampRally <$> v .: "id"
@@ -50,6 +60,20 @@ createTokenRequest credential baseRequest =
     $ setRequestPath "/tokens"
     $ setRequestQueryString [("view_type", Just "admin")]
     $ baseRequest
+
+getSpotList :: Request -> IO (Maybe SpotList)
+getSpotList = sendRequest
+
+getSpotListRequest :: StampRallyId -> Token -> Request -> Request
+getSpotListRequest stampRallyId (Token token) baseRequest =
+  setRequestMethod "GET"
+    $ setRequestPath path
+    $ setRequestHeaders [("Authorization", authHeader)]
+    $ setRequestQueryString [("view_type", Just "admin")]
+    $ baseRequest
+  where
+    path = B.fromString $ "/stamp_rallies/" <> stampRallyId <> "/spots"
+    authHeader = B.fromString $ "Token token=\"" <> token <> "\""
 
 getStampRally :: Request -> IO (Maybe StampRally)
 getStampRally = sendRequest
@@ -88,3 +112,9 @@ export' = do
       putStrLn "StampRally"
       exitFailure
   print stampRally
+  spotList <- case token of
+    Just x -> getSpotList $ getSpotListRequest stampRallyId x baseRequest
+    Nothing -> do
+      putStrLn "SpotList"
+      exitFailure
+  print spotList
