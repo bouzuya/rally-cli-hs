@@ -4,7 +4,7 @@ import           Data.Aeson           (FromJSON (parseJSON), ToJSON (toJSON),
                                        decode, object, withObject, (.:), (.=))
 import           Data.Aeson.Text      (encodeToLazyText)
 import qualified Data.ByteString.UTF8 as B
-import           Data.Maybe           (Maybe (Just, Nothing))
+import           Data.Maybe           (Maybe (Just, Nothing), maybe)
 import           Data.Monoid          ((<>))
 import           Data.Text.Lazy       as TL
 import           Network.HTTP.Simple  (Request, getResponseBody, httpLBS,
@@ -16,7 +16,7 @@ import           Prelude              (FilePath, IO, Int, Show, String, print,
 import           System.Directory     (createDirectory, doesDirectoryExist,
                                        getCurrentDirectory)
 import           System.Environment   (lookupEnv)
-import           System.Exit          (exitFailure)
+import           System.Exit          (die, exitFailure)
 import           System.FilePath      ((</>))
 import           System.IO            (writeFile)
 
@@ -116,12 +116,7 @@ saveStampRally directory stampRally = do
 exportStampRally :: FilePath -> StampRallyId -> Token -> Request -> IO ()
 exportStampRally directory stampRallyId token request = do
   stampRally <- getStampRally $ getStampRallyRequest stampRallyId token request
-  print stampRally
-  case stampRally of
-    Just x  -> saveStampRally directory x
-    Nothing -> do
-      putStrLn "StampRally"
-      exitFailure
+  maybe (die "StampRally") (saveStampRally directory) stampRally
 
 export' :: IO ()
 export' = do
