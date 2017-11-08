@@ -1,12 +1,13 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Command.Export (export') where
-import           Data.Aeson           (FromJSON (parseJSON), decode, withObject,
-                                       (.:))
+
+import           Data.Aeson           (FromJSON, decode)
 import           Data.Aeson.Text      (encodeToLazyText)
 import qualified Data.ByteString.UTF8 as B
 import           Data.Credential      (Credential, getCredential)
 import           Data.Maybe           (Maybe (Just), maybe)
 import           Data.Monoid          ((<>))
+import           Data.Spot            (SpotList)
 import           Data.StampRally      (StampRally, StampRallyId)
 import           Data.Text.Lazy       as TL
 import           Data.Token           (Token, getAuthHeader)
@@ -14,23 +15,12 @@ import           Network.HTTP.Simple  (Request, getResponseBody, httpLBS,
                                        parseRequest, setRequestBodyJSON,
                                        setRequestHeaders, setRequestMethod,
                                        setRequestPath, setRequestQueryString)
-import           Prelude              (FilePath, IO, Int, Show, print, pure,
-                                       ($), (<$>))
+import           Prelude              (FilePath, IO, print, pure, ($))
 import           System.Directory     (createDirectory, doesDirectoryExist,
                                        getCurrentDirectory)
 import           System.Exit          (die)
 import           System.FilePath      ((</>))
 import           System.IO            (writeFile)
-
-type SpotId = Int
-data Spot = Spot SpotId deriving (Show)
-data SpotList = SpotList [Spot] deriving (Show)
-
-instance FromJSON Spot where
-  parseJSON = withObject "Spot" $ \v -> Spot <$> v .: "id"
-
-instance FromJSON SpotList where
-  parseJSON = withObject "SpotList" $ \v -> SpotList <$> v .: "spots"
 
 createToken :: Request -> IO (Maybe Token)
 createToken = sendRequest
