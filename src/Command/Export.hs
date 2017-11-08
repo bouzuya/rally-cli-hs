@@ -1,9 +1,10 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Command.Export (export') where
-import           Data.Aeson           (FromJSON (parseJSON), ToJSON (toJSON),
-                                       decode, object, withObject, (.:), (.=))
+import           Data.Aeson           (FromJSON (parseJSON), decode, withObject,
+                                       (.:))
 import           Data.Aeson.Text      (encodeToLazyText)
 import qualified Data.ByteString.UTF8 as B
+import           Data.Credential      (Credential, getCredential)
 import           Data.Maybe           (Maybe (Just), maybe)
 import           Data.Monoid          ((<>))
 import           Data.StampRally      (StampRally, StampRallyId)
@@ -13,33 +14,17 @@ import           Network.HTTP.Simple  (Request, getResponseBody, httpLBS,
                                        setRequestHeaders, setRequestMethod,
                                        setRequestPath, setRequestQueryString)
 import           Prelude              (FilePath, IO, Int, Show, String, print,
-                                       pure, ($), (<$>), (<*>))
+                                       pure, ($), (<$>))
 import           System.Directory     (createDirectory, doesDirectoryExist,
                                        getCurrentDirectory)
-import           System.Environment   (lookupEnv)
 import           System.Exit          (die)
 import           System.FilePath      ((</>))
 import           System.IO            (writeFile)
 
-type Email = String
-type Password = String
-data Credential = Credential Email Password deriving (Show)
 data Token = Token String deriving (Show)
 type SpotId = Int
 data Spot = Spot SpotId deriving (Show)
 data SpotList = SpotList [Spot] deriving (Show)
-
-getCredential :: IO (Maybe Credential)
-getCredential = do
-  email    <- lookupEnv "RALLY_EMAIL"
-  password <- lookupEnv "RALLY_PASSWORD"
-  pure $ Credential <$> email <*> password
-
-instance ToJSON Credential where
-  toJSON (Credential email password) =
-    object [ "email" .= email
-           , "password" .= password
-           ]
 
 instance FromJSON Spot where
   parseJSON = withObject "Spot" $ \v -> Spot <$> v .: "id"

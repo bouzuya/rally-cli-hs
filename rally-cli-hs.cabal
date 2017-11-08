@@ -17,6 +17,7 @@ library
   hs-source-dirs:      src
   exposed-modules:     Lib
                      , Command.Export
+                     , Data.Credential
                      , Data.StampRally
   ghc-options:         -Wall
   build-depends:       aeson
