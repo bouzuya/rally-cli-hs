@@ -15,10 +15,11 @@ cabal-version:       >=1.10
 
 library
   hs-source-dirs:      src
-  exposed-modules:     Lib
-                     , Command.Export
+  exposed-modules:     Command.Export
                      , Data.Credential
                      , Data.StampRally
+                     , Data.Token
+                     , Lib
   ghc-options:         -Wall
   build-depends:       aeson
                      , base >= 4.7 && < 5

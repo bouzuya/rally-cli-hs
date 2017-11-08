@@ -9,19 +9,19 @@ import           Data.Maybe           (Maybe (Just), maybe)
 import           Data.Monoid          ((<>))
 import           Data.StampRally      (StampRally, StampRallyId)
 import           Data.Text.Lazy       as TL
+import           Data.Token           (Token, getAuthHeader)
 import           Network.HTTP.Simple  (Request, getResponseBody, httpLBS,
                                        parseRequest, setRequestBodyJSON,
                                        setRequestHeaders, setRequestMethod,
                                        setRequestPath, setRequestQueryString)
-import           Prelude              (FilePath, IO, Int, Show, String, print,
-                                       pure, ($), (<$>))
+import           Prelude              (FilePath, IO, Int, Show, print, pure,
+                                       ($), (<$>))
 import           System.Directory     (createDirectory, doesDirectoryExist,
                                        getCurrentDirectory)
 import           System.Exit          (die)
 import           System.FilePath      ((</>))
 import           System.IO            (writeFile)
 
-data Token = Token String deriving (Show)
 type SpotId = Int
 data Spot = Spot SpotId deriving (Show)
 data SpotList = SpotList [Spot] deriving (Show)
@@ -31,9 +31,6 @@ instance FromJSON Spot where
 
 instance FromJSON SpotList where
   parseJSON = withObject "SpotList" $ \v -> SpotList <$> v .: "spots"
-
-instance FromJSON Token where
-  parseJSON = withObject "Token" $ \v -> Token <$> v .: "token"
 
 createToken :: Request -> IO (Maybe Token)
 createToken = sendRequest
@@ -50,7 +47,7 @@ getSpotList :: Request -> IO (Maybe SpotList)
 getSpotList = sendRequest
 
 getSpotListRequest :: StampRallyId -> Token -> Request -> Request
-getSpotListRequest stampRallyId (Token token) baseRequest =
+getSpotListRequest stampRallyId token baseRequest =
   setRequestMethod "GET"
     $ setRequestPath path
     $ setRequestHeaders [("Authorization", authHeader)]
@@ -58,13 +55,13 @@ getSpotListRequest stampRallyId (Token token) baseRequest =
     $ baseRequest
  where
   path       = B.fromString $ "/stamp_rallies/" <> stampRallyId <> "/spots"
-  authHeader = B.fromString $ "Token token=\"" <> token <> "\""
+  authHeader = B.fromString $ getAuthHeader token
 
 getStampRally :: Request -> IO (Maybe StampRally)
 getStampRally = sendRequest
 
 getStampRallyRequest :: StampRallyId -> Token -> Request -> Request
-getStampRallyRequest stampRallyId (Token token) baseRequest =
+getStampRallyRequest stampRallyId token baseRequest =
   setRequestMethod "GET"
     $ setRequestPath path
     $ setRequestHeaders [("Authorization", authHeader)]
@@ -72,7 +69,7 @@ getStampRallyRequest stampRallyId (Token token) baseRequest =
     $ baseRequest
  where
   path       = B.fromString $ "/stamp_rallies/" <> stampRallyId
-  authHeader = B.fromString $ "Token token=\"" <> token <> "\""
+  authHeader = B.fromString $ getAuthHeader token
 
 sendRequest :: (FromJSON a) => Request -> IO (Maybe a)
 sendRequest request = do
@@ -104,9 +101,9 @@ export' = do
   baseRequest <- parseRequest "https://api.rallyapp.jp"
   credential  <- getCredential
   credential' <- maybe (die "RALLY_EMAIL & RALLY_PASSWORD") pure credential
-  token <- createToken $ createTokenRequest credential' baseRequest
-  token' <- maybe (die "Token") pure token
+  token       <- createToken $ createTokenRequest credential' baseRequest
+  token'      <- maybe (die "Token") pure token
   exportStampRally stampRallyDirectory stampRallyId token' baseRequest
-  spotList <- getSpotList $ getSpotListRequest stampRallyId token' baseRequest
+  spotList  <- getSpotList $ getSpotListRequest stampRallyId token' baseRequest
   spotList' <- maybe (die "SpotList") pure spotList
   print spotList'
