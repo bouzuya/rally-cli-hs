@@ -6,6 +6,7 @@ import           Data.Aeson.Text      (encodeToLazyText)
 import qualified Data.ByteString.UTF8 as B
 import           Data.Maybe           (Maybe (Just), maybe)
 import           Data.Monoid          ((<>))
+import           Data.StampRally      (StampRally, StampRallyId)
 import           Data.Text.Lazy       as TL
 import           Network.HTTP.Simple  (Request, getResponseBody, httpLBS,
                                        parseRequest, setRequestBodyJSON,
@@ -23,8 +24,6 @@ import           System.IO            (writeFile)
 type Email = String
 type Password = String
 data Credential = Credential Email Password deriving (Show)
-type StampRallyId = String
-data StampRally = StampRally StampRallyId deriving (Show)
 data Token = Token String deriving (Show)
 type SpotId = Int
 data Spot = Spot SpotId deriving (Show)
@@ -41,19 +40,12 @@ instance ToJSON Credential where
     object [ "email" .= email
            , "password" .= password
            ]
-instance ToJSON StampRally where
-  toJSON (StampRally id) =
-    object [ "id" .= id
-           ]
 
 instance FromJSON Spot where
   parseJSON = withObject "Spot" $ \v -> Spot <$> v .: "id"
 
 instance FromJSON SpotList where
   parseJSON = withObject "SpotList" $ \v -> SpotList <$> v .: "spots"
-
-instance FromJSON StampRally where
-  parseJSON = withObject "StampRally" $ \v -> StampRally <$> v .: "id"
 
 instance FromJSON Token where
   parseJSON = withObject "Token" $ \v -> Token <$> v .: "token"
