@@ -9,7 +9,7 @@ import           Data.Maybe           (Maybe (Just), maybe)
 import           Data.Monoid          ((<>))
 import           Data.Spot            (SpotList)
 import           Data.StampRally      (StampRally, StampRallyId)
-import           Data.Text.Lazy       as TL
+import           Data.Text.Lazy.IO    (writeFile)
 import           Data.Token           (Token, getAuthHeader)
 import           Network.HTTP.Simple  (Request, getResponseBody, httpLBS,
                                        parseRequest, setRequestBodyJSON,
@@ -20,7 +20,6 @@ import           System.Directory     (createDirectory, doesDirectoryExist,
                                        getCurrentDirectory)
 import           System.Exit          (die)
 import           System.FilePath      ((</>))
-import           System.IO            (writeFile)
 
 createToken :: Request -> IO (Maybe Token)
 createToken = sendRequest
@@ -74,7 +73,7 @@ ensureDirectory filePath = do
 saveStampRally :: FilePath -> StampRally -> IO ()
 saveStampRally directory stampRally = do
   let filePath = directory </> "stamp-rally.json"
-  let content  = TL.unpack $ encodeToLazyText stampRally
+  let content  = encodeToLazyText stampRally
   writeFile filePath content
 
 exportStampRally :: FilePath -> StampRallyId -> Token -> Request -> IO ()
