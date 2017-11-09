@@ -1,9 +1,8 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Data.Spot (Spot, SpotId, SpotList) where
 
-import           Data.Aeson (FromJSON (parseJSON), ToJSON (toJSON), object,
-                             withObject, (.:), (.=))
-import           Prelude    (Int, Show, String, ($), (<$>))
+import           Data.Aeson (FromJSON (parseJSON), withObject, (.:))
+import           Prelude    (Int, Show, ($), (<$>))
 
 type SpotId = Int
 data Spot = Spot SpotId deriving (Show)
