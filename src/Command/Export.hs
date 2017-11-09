@@ -9,7 +9,7 @@ import           Data.Text.Lazy.IO (writeFile)
 import           Data.Token        (Token)
 import           Prelude           (FilePath, IO, print, pure)
 import           Request           (Request, createToken, defaultRequest,
-                                    getSpotList, getStampRally)
+                                    getRewardList, getSpotList, getStampRally)
 import           System.Directory  (createDirectory, doesDirectoryExist,
                                     getCurrentDirectory)
 import           System.Exit       (die)
@@ -46,3 +46,6 @@ export' = do
   spotList  <- getSpotList stampRallyId token' baseRequest
   spotList' <- maybe (die "SpotList") pure spotList
   print spotList'
+  rewardList  <- getRewardList stampRallyId token' baseRequest
+  rewardList' <- maybe (die "RewardList") pure rewardList
+  print rewardList'

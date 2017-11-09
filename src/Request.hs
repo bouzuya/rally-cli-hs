@@ -1,11 +1,12 @@
 {-# LANGUAGE OverloadedStrings #-}
-module Request (Request, createToken, defaultRequest, getSpotList, getStampRally) where
+module Request (Request, createToken, defaultRequest, getSpotList, getRewardList, getStampRally) where
 
 import           Data.Aeson           (FromJSON, decode)
 import qualified Data.ByteString.UTF8 as B
 import           Data.Credential      (Credential)
 import           Data.Maybe           (Maybe (Just))
 import           Data.Monoid          ((<>))
+import           Data.Reward          (RewardList)
 import           Data.Spot            (SpotList)
 import           Data.StampRally      (StampRally, StampRallyId)
 import           Data.Token           (Token, getAuthHeader)
@@ -29,6 +30,21 @@ createTokenRequest credential request =
 
 defaultRequest :: IO Request
 defaultRequest = parseRequest "https://api.rallyapp.jp"
+
+getRewardList :: StampRallyId -> Token -> Request -> IO (Maybe RewardList)
+getRewardList stampRallyId token request =
+  sendRequest $ getRewardListRequest stampRallyId token request
+
+getRewardListRequest :: StampRallyId -> Token -> Request -> Request
+getRewardListRequest stampRallyId token request =
+  setRequestMethod "GET"
+    $ setRequestPath path
+    $ setRequestHeaders [("Authorization", authHeader)]
+    $ setRequestQueryString [("view_type", Just "admin")]
+    $ request
+ where
+  path       = B.fromString $ "/stamp_rallies/" <> stampRallyId <> "/rewards"
+  authHeader = B.fromString $ getAuthHeader token
 
 getSpotList :: StampRallyId -> Token -> Request -> IO (Maybe SpotList)
 getSpotList stampRallyId token request =
@@ -62,5 +78,5 @@ getStampRallyRequest stampRallyId token request =
 
 sendRequest :: (FromJSON a) => Request -> IO (Maybe a)
 sendRequest request = do
-  json <- httpLBS request
-  pure $ decode $ getResponseBody json
+  response <- httpLBS request
+  pure $ decode $ getResponseBody response

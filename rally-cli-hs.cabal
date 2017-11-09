@@ -17,6 +17,7 @@ library
   hs-source-dirs:      src
   exposed-modules:     Command.Export
                      , Data.Credential
+                     , Data.Reward
                      , Data.Spot
                      , Data.StampRally
                      , Data.Token
