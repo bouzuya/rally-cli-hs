@@ -21,6 +21,7 @@ library
                      , Data.StampRally
                      , Data.Token
                      , Lib
+                     , Request
   ghc-options:         -Wall
   build-depends:       aeson
                      , base >= 4.7 && < 5
