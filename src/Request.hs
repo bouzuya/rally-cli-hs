@@ -1,20 +1,29 @@
 {-# LANGUAGE OverloadedStrings #-}
-module Request (Request, createToken, defaultRequest, getSpotList, getRewardList, getStampRally) where
+module Request (Request
+               , createToken
+               , defaultRequest
+               , getSpot
+               , getSpotList
+               , getRewardList
+               , getStampRally
+               ) where
 
+import           Control.Monad        (foldM)
 import           Data.Aeson           (FromJSON, decode)
 import qualified Data.ByteString.UTF8 as B
 import           Data.Credential      (Credential)
-import           Data.Maybe           (Maybe (Just))
+import           Data.Maybe           (Maybe (Just, Nothing))
 import           Data.Monoid          ((<>))
 import           Data.Reward          (RewardList)
-import           Data.Spot            (SpotList)
+import           Data.Spot            (Spot, SpotId, SpotList, getSpotId,
+                                       getSpotSummaryList)
 import           Data.StampRally      (StampRally, StampRallyId)
 import           Data.Token           (Token, getAuthHeader)
 import           Network.HTTP.Simple  (Request, getResponseBody, httpLBS,
                                        parseRequest, setRequestBodyJSON,
                                        setRequestHeaders, setRequestMethod,
                                        setRequestPath, setRequestQueryString)
-import           Prelude              (IO, pure, ($))
+import           Prelude              (IO, id, pure, show, traverse, ($))
 
 createToken :: Credential -> Request -> IO (Maybe Token)
 createToken credential request =
@@ -46,12 +55,44 @@ getRewardListRequest stampRallyId token request =
   path       = B.fromString $ "/stamp_rallies/" <> stampRallyId <> "/rewards"
   authHeader = B.fromString $ getAuthHeader token
 
-getSpotList :: StampRallyId -> Token -> Request -> IO (Maybe SpotList)
-getSpotList stampRallyId token request =
-  sendRequest $ getSpotListRequest stampRallyId token request
+getSpot :: SpotId -> Token -> Request -> IO (Maybe Spot)
+getSpot spotId token request =
+  sendRequest $ getSpotRequest spotId token request
 
-getSpotListRequest :: StampRallyId -> Token -> Request -> Request
-getSpotListRequest stampRallyId token request =
+getSpotRequest :: SpotId -> Token -> Request -> Request
+getSpotRequest spotId token request =
+  setRequestMethod "GET"
+    $ setRequestPath path
+    $ setRequestHeaders [("Authorization", authHeader)]
+    $ setRequestQueryString [("view_type", Just "admin")]
+    $ request
+ where
+  path       = B.fromString $ "/spots/" <> show spotId
+  authHeader = B.fromString $ getAuthHeader token
+
+getSpotList :: StampRallyId -> Token -> Request -> IO (Maybe [Spot])
+getSpotList stampRallyId token request = do
+  spotSummaryList <- getSpotSummaryList'  stampRallyId token request
+  case spotSummaryList of
+    Just x  -> do
+      spots <- foldM
+        (\a spotSummary -> do
+          spot <- getSpot' spotSummary
+          pure $ a <> [spot])
+        []
+        (getSpotSummaryList x)
+        :: IO [Maybe Spot]
+      pure $ traverse id spots
+    Nothing -> pure Nothing
+  where
+    getSpot' spotSummary = getSpot (getSpotId spotSummary) token request
+
+getSpotSummaryList' ::  StampRallyId -> Token -> Request -> IO (Maybe SpotList)
+getSpotSummaryList' stampRallyId token request =
+  sendRequest $ getSpotSummaryListRequest stampRallyId token request
+
+getSpotSummaryListRequest :: StampRallyId -> Token -> Request -> Request
+getSpotSummaryListRequest stampRallyId token request =
   setRequestMethod "GET"
     $ setRequestPath path
     $ setRequestHeaders [("Authorization", authHeader)]
