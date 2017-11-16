@@ -7,7 +7,8 @@ module Data.Spot ( Spot
                  , getSpotSummaryList
                  ) where
 
-import           Data.Aeson  (FromJSON (parseJSON), withObject, (.:))
+import           Data.Aeson  (FromJSON (parseJSON), ToJSON (toJSON), object,
+                              withObject, (.:), (.=))
 import           Data.Detail (Detail)
 import           Prelude     (Int, Show, ($), (<$>), (<*>))
 
@@ -33,3 +34,9 @@ instance FromJSON SpotSummary where
 instance FromJSON SpotList where
   parseJSON = withObject "SpotList" $ \v -> SpotList
     <$> v .: "spots"
+
+instance ToJSON Spot where
+  toJSON (Spot id details) =
+    object [ "id" .= id
+           , "details" .= details
+           ]
