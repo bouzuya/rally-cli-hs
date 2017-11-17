@@ -1,6 +1,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Command.Export (export') where
 
+import           Data.Aeson        (ToJSON)
 import           Data.Aeson.Text   (encodeToLazyText)
 import           Data.Credential   (getCredential)
 import           Data.Maybe        (maybe)
@@ -21,21 +22,21 @@ ensureDirectory filePath = do
   exists <- doesDirectoryExist filePath
   if exists then pure () else createDirectory filePath
 
-saveSpotList :: FilePath -> [Spot] -> IO ()
-saveSpotList directory spotList = do
-  let filePath = directory </> "spots.json"
-  let content  = encodeToLazyText spotList
+save :: (ToJSON a) => FilePath -> FilePath -> a -> IO ()
+save fileName directory o = do
+  let filePath = directory </> fileName
+  let content  = encodeToLazyText o
   writeFile filePath content
 
+saveSpotList :: FilePath -> [Spot] -> IO ()
+saveSpotList = save "spots.json"
+
 saveStampRally :: FilePath -> StampRally -> IO ()
-saveStampRally directory stampRally = do
-  let filePath = directory </> "stamp-rally.json"
-  let content  = encodeToLazyText stampRally
-  writeFile filePath content
+saveStampRally = save "stamp-rally.json"
 
 exportSpotList :: FilePath -> StampRallyId -> Token -> Request -> IO ()
 exportSpotList directory stampRallyId token request = do
-  spotList  <- getSpotList stampRallyId token request
+  spotList <- getSpotList stampRallyId token request
   maybe (die "SpotList") (saveSpotList directory) spotList
 
 exportStampRally :: FilePath -> StampRallyId -> Token -> Request -> IO ()
@@ -55,7 +56,7 @@ export' = do
   token       <- createToken credential' baseRequest
   token'      <- maybe (die "Token") pure token
   exportStampRally stampRallyDirectory stampRallyId token' baseRequest
-  exportSpotList stampRallyDirectory stampRallyId token' baseRequest
+  exportSpotList   stampRallyDirectory stampRallyId token' baseRequest
   rewardList  <- getRewardList stampRallyId token' baseRequest
   rewardList' <- maybe (die "RewardList") pure rewardList
   print rewardList'
