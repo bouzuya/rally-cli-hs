@@ -4,12 +4,12 @@ module Command.Export (export') where
 import           Data.Aeson        (ToJSON)
 import           Data.Aeson.Text   (encodeToLazyText)
 import           Data.Credential   (getCredential)
-import           Data.Maybe        (maybe)
+import           Data.Maybe        (Maybe, maybe)
 import           Data.Spot         (Spot)
 import           Data.StampRally   (StampRally, StampRallyId)
 import           Data.Text.Lazy.IO (writeFile)
 import           Data.Token        (Token)
-import           Prelude           (FilePath, IO, print, pure)
+import           Prelude           (FilePath, IO, String, print, pure)
 import           Request           (Request, createToken, defaultRequest,
                                     getRewardList, getSpotList, getStampRally)
 import           System.Directory  (createDirectory, doesDirectoryExist,
@@ -17,32 +17,45 @@ import           System.Directory  (createDirectory, doesDirectoryExist,
 import           System.Exit       (die)
 import           System.FilePath   ((</>))
 
+type Get a = StampRallyId -> Token -> Request -> IO (Maybe a)
+type Save a = FilePath -> a -> IO ()
+
 ensureDirectory :: FilePath -> IO ()
 ensureDirectory filePath = do
   exists <- doesDirectoryExist filePath
   if exists then pure () else createDirectory filePath
 
-save :: (ToJSON a) => FilePath -> FilePath -> a -> IO ()
+save :: (ToJSON a) => FilePath -> Save a
 save fileName directory o = do
   let filePath = directory </> fileName
   let content  = encodeToLazyText o
   writeFile filePath content
 
-saveSpotList :: FilePath -> [Spot] -> IO ()
+saveSpotList :: Save [Spot]
 saveSpotList = save "spots.json"
 
-saveStampRally :: FilePath -> StampRally -> IO ()
+saveStampRally :: Save StampRally
 saveStampRally = save "stamp-rally.json"
 
+export
+  :: (ToJSON a)
+  => String
+  -> Get a
+  -> Save a
+  -> FilePath
+  -> StampRallyId
+  -> Token
+  -> Request
+  -> IO ()
+export message get save' directory stampRallyId token request = do
+  x <- get stampRallyId token request
+  maybe (die message) (save' directory) x
+
 exportSpotList :: FilePath -> StampRallyId -> Token -> Request -> IO ()
-exportSpotList directory stampRallyId token request = do
-  spotList <- getSpotList stampRallyId token request
-  maybe (die "SpotList") (saveSpotList directory) spotList
+exportSpotList = export "SpotList" getSpotList saveSpotList
 
 exportStampRally :: FilePath -> StampRallyId -> Token -> Request -> IO ()
-exportStampRally directory stampRallyId token request = do
-  stampRally <- getStampRally stampRallyId token request
-  maybe (die "StampRally") (saveStampRally directory) stampRally
+exportStampRally = export "StampRally" getStampRally saveStampRally
 
 export' :: IO ()
 export' = do
