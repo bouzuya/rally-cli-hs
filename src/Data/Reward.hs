@@ -6,7 +6,8 @@ module Data.Reward ( Reward
                    , getRewardSummaryList
                    ) where
 
-import           Data.Aeson  (FromJSON (parseJSON), withObject, (.:))
+import           Data.Aeson  (FromJSON (parseJSON), ToJSON (toJSON), object,
+                              withObject, (.:), (.=))
 import           Data.Detail (Detail)
 import           Prelude     (Int, Show, ($), (<$>), (<*>))
 
@@ -34,3 +35,8 @@ instance FromJSON RewardList where
   parseJSON = withObject "RewardList" $ \v -> RewardList
     <$> v .: "rewards"
 
+instance ToJSON Reward where
+  toJSON (Reward id details) =
+    object [ "id" .= id
+            , "details" .= details
+            ]

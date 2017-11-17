@@ -5,6 +5,7 @@ import           Data.Aeson        (ToJSON)
 import           Data.Aeson.Text   (encodeToLazyText)
 import           Data.Credential   (getCredential)
 import           Data.Maybe        (Maybe, maybe)
+import           Data.Reward       (Reward)
 import           Data.Spot         (Spot)
 import           Data.StampRally   (StampRally, StampRallyId)
 import           Data.Text.Lazy.IO (writeFile)
@@ -31,6 +32,9 @@ save fileName directory o = do
   let content  = encodeToLazyText o
   writeFile filePath content
 
+saveRewardList :: Save [Reward]
+saveRewardList = save "rewards.json"
+
 saveSpotList :: Save [Spot]
 saveSpotList = save "spots.json"
 
@@ -51,6 +55,9 @@ export message get save' directory stampRallyId token request = do
   x <- get stampRallyId token request
   maybe (die message) (save' directory) x
 
+exportRewardList :: FilePath -> StampRallyId -> Token -> Request -> IO ()
+exportRewardList = export "RewardList" getRewardList saveRewardList
+
 exportSpotList :: FilePath -> StampRallyId -> Token -> Request -> IO ()
 exportSpotList = export "SpotList" getSpotList saveSpotList
 
@@ -70,6 +77,4 @@ export' = do
   token'      <- maybe (die "Token") pure token
   exportStampRally stampRallyDirectory stampRallyId token' baseRequest
   exportSpotList   stampRallyDirectory stampRallyId token' baseRequest
-  rewardList  <- getRewardList stampRallyId token' baseRequest
-  rewardList' <- maybe (die "RewardList") pure rewardList
-  print rewardList'
+  exportRewardList stampRallyDirectory stampRallyId token' baseRequest
