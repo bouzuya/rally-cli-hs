@@ -28,6 +28,7 @@ library
   ghc-options:         -Wall
   build-depends:       aeson
                      , base >= 4.7 && < 5
+                     , bytestring
                      , directory
                      , filepath
                      , http-conduit

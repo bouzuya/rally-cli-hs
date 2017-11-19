@@ -2,6 +2,7 @@
 module Request (Request
                , createToken
                , defaultRequest
+               , getImage
                , getSpot
                , getSpotList
                , getRewardList
@@ -10,6 +11,7 @@ module Request (Request
 
 import           Control.Monad        (foldM)
 import           Data.Aeson           (FromJSON, decode)
+import           Data.ByteString.Lazy as L
 import qualified Data.ByteString.UTF8 as B
 import           Data.Credential      (Credential)
 import           Data.Maybe           (Maybe (Just, Nothing))
@@ -24,7 +26,10 @@ import           Network.HTTP.Simple  (Request, getResponseBody, httpLBS,
                                        parseRequest, setRequestBodyJSON,
                                        setRequestHeaders, setRequestMethod,
                                        setRequestPath, setRequestQueryString)
-import           Prelude              (IO, id, pure, show, traverse, ($))
+import           Prelude              (IO, String, id, pure, show, traverse,
+                                       ($))
+
+type LBS = L.ByteString
 
 createToken :: Credential -> Request -> IO (Maybe Token)
 createToken credential request =
@@ -40,6 +45,12 @@ createTokenRequest credential request =
 
 defaultRequest :: IO Request
 defaultRequest = parseRequest "https://api.rallyapp.jp"
+
+getImage :: String -> IO (Maybe LBS)
+getImage url = do
+  request <- parseRequest url
+  response <- httpLBS request
+  pure $ Just $ getResponseBody response -- TODO: check status code
 
 getReward :: RewardId -> Token -> Request -> IO (Maybe Reward)
 getReward rewardId token request =
@@ -68,7 +79,7 @@ getRewardList stampRallyId token request = do
             pure $ a <> [reward]
           )
           []
-        (getRewardSummaryList x) :: IO [Maybe Reward]
+          (getRewardSummaryList x) :: IO [Maybe Reward]
       pure $ traverse id rewards
     Nothing -> pure Nothing
  where

@@ -1,5 +1,9 @@
 {-# LANGUAGE OverloadedStrings #-}
-module Data.StampRally (StampRally, StampRallyId) where
+module Data.StampRally
+  ( StampRally
+  , StampRallyId
+  , getImageList
+  ) where
 
 import           Data.Aeson  (FromJSON (parseJSON), ToJSON (toJSON), object,
                               withObject, (.:), (.=))
@@ -9,6 +13,9 @@ import           Prelude     (Show, String, ($), (<$>), (<*>))
 
 type StampRallyId = String
 data StampRally = StampRally StampRallyId [Detail] [Image] deriving (Show)
+
+getImageList :: StampRally -> [Image]
+getImageList (StampRally _ _ images) = images
 
 instance FromJSON StampRally where
   parseJSON = withObject "StampRally" $ \v -> StampRally
