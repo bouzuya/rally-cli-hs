@@ -18,6 +18,7 @@ library
   exposed-modules:     Command.Export
                      , Data.Credential
                      , Data.Detail
+                     , Data.Image
                      , Data.Reward
                      , Data.Spot
                      , Data.StampRally
